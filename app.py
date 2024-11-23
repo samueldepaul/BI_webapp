@@ -27,10 +27,17 @@ def load_sam_model(checkpoint_path):
     predictor = SamPredictor(sam_model)
     return predictor
 
-# Procesar una imagen por defecto
+# Procesar una imagen y asegurar que está en formato RGB
 def segment_image(image, predictor):
     st.write("Segmentando la imagen...")
     image_np = np.array(image)
+
+    # Verificar si la imagen es en escala de grises y convertirla a RGB
+    if len(image_np.shape) == 2:
+        st.write("La imagen está en escala de grises. Convirtiendo a RGB...")
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_GRAY2RGB)
+
+    # Configurar el predictor con la imagen procesada
     predictor.set_image(image_np)
 
     # Coordenadas de una caja de ejemplo
