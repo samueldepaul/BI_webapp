@@ -1,0 +1,8 @@
+streamlit
+segment-anything
+gdown
+torch
+torchvision
+opencv-python-headless
+pillow
+numpy
