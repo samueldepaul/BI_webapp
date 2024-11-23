@@ -27,10 +27,24 @@ def load_sam_model(checkpoint_path):
     predictor = SamPredictor(sam_model)
     return predictor
 
-# Procesar una imagen por defecto
+# Procesar una imagen y asegurar que está en formato RGB
+def prepare_image(image):
+    """
+    Asegura que la imagen tenga 3 canales (RGB) para ser compatible con SAM.
+    """
+    image_np = np.array(image)
+    if len(image_np.shape) == 2:  # Escala de grises
+        st.warning("La imagen está en escala de grises. Convirtiendo a RGB...")
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_GRAY2RGB)
+    elif image_np.shape[2] == 4:  # Tiene canal alfa (RGBA)
+        st.warning("La imagen tiene un canal alfa. Eliminándolo...")
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_RGBA2RGB)
+    return image_np
+
+# Segmentar la imagen
 def segment_image(image, predictor):
     st.write("Segmentando la imagen...")
-    image_np = np.array(image)
+    image_np = prepare_image(image)  # Asegurar que la imagen tenga 3 canales
     predictor.set_image(image_np)
 
     # Coordenadas de una caja de ejemplo
