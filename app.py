@@ -27,30 +27,30 @@ def load_sam_model(checkpoint_path):
     predictor = SamPredictor(sam_model)
     return predictor
 
-# Asegurar que la imagen tiene 3 canales RGB
-def prepare_image(image):
-    """
-    Convierte la imagen a RGB si no tiene 3 canales.
-    """
-    image_np = np.array(image)
-    if len(image_np.shape) == 2:  # Escala de grises
-        image_np = cv2.cvtColor(image_np, cv2.COLOR_GRAY2RGB)
-    elif image_np.shape[2] == 4:  # Imagen con canal alfa (RGBA)
-        image_np = cv2.cvtColor(image_np, cv2.COLOR_RGBA2RGB)
-    return image_np
+# Procesar una imagen redimensionada
+def preprocess_image(image, max_size=512):
+    """Redimensiona la imagen para minimizar la carga en el modelo SAM."""
+    width, height = image.size
+    scaling_factor = max_size / max(width, height)
+    if scaling_factor < 1:
+        new_size = (int(width * scaling_factor), int(height * scaling_factor))
+        image = image.resize(new_size, Image.ANTIALIAS)
+    return np.array(image)
 
-# Segmentar una imagen
+# Segmentar imagen
 def segment_image(image, predictor):
-    """
-    Aplica SAM para segmentar la imagen.
-    """
     st.write("Segmentando la imagen...")
-    image_np = prepare_image(image)  # Asegurar formato RGB
+    image_np = preprocess_image(image)
     predictor.set_image(image_np)
 
-    # Usar una caja para segmentar
+    # Coordenadas de una caja de ejemplo
     input_box = np.array([[50, 50, image_np.shape[1] - 50, image_np.shape[0] - 50]])
     masks, _, _ = predictor.predict(box=input_box, multimask_output=False)
+
+    # Forzar liberación de memoria de GPU si es necesario
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     return masks[0]
 
 # Configurar Streamlit
@@ -63,7 +63,7 @@ checkpoint_path = download_checkpoint()
 # Cargar el modelo
 predictor = load_sam_model(checkpoint_path)
 
-# Procesar la imagen por defecto
+# Imagen por defecto
 default_image_path = "default_image.jpg"  # Asegúrate de tener una imagen de prueba
 if not os.path.exists(default_image_path):
     st.warning("Coloca una imagen llamada `default_image.jpg` en el directorio raíz.")
@@ -72,11 +72,12 @@ else:
     st.image(image, caption="Imagen original")
 
     # Segmentar la imagen
-    try:
-        mask = segment_image(image, predictor)
+    mask = segment_image(image, predictor)
 
-        # Mostrar la segmentación
-        st.write("Máscara segmentada:")
-        st.image(mask * 255, caption="Máscara generada", clamp=True)
-    except Exception as e:
-        st.error(f"Error durante la segmentación: {e}")
+    # Mostrar la segmentación
+    st.write("Máscara segmentada:")
+    st.image(mask * 255, caption="Máscara generada", clamp=True)
+
+    # Liberar memoria utilizada por PyTorch
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
