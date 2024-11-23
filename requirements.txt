@@ -1,8 +1,7 @@
-streamlit
-segment-anything
-gdown
-torch
-torchvision
-opencv-python-headless
-pillow
-numpy
+streamlit==1.40.1
+gdown==5.2.0
+numpy==2.1.3
+opencv-python-headless==4.10.0.84
+torch==2.5.1
+torchvision==0.20.1
+segment-anything==1.0

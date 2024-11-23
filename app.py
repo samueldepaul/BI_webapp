@@ -27,13 +27,28 @@ def load_sam_model(checkpoint_path):
     predictor = SamPredictor(sam_model)
     return predictor
 
-# Procesar una imagen por defecto
-def segment_image(image, predictor):
-    st.write("Segmentando la imagen...")
+# Asegurar que la imagen tiene 3 canales RGB
+def prepare_image(image):
+    """
+    Convierte la imagen a RGB si no tiene 3 canales.
+    """
     image_np = np.array(image)
+    if len(image_np.shape) == 2:  # Escala de grises
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_GRAY2RGB)
+    elif image_np.shape[2] == 4:  # Imagen con canal alfa (RGBA)
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_RGBA2RGB)
+    return image_np
+
+# Segmentar una imagen
+def segment_image(image, predictor):
+    """
+    Aplica SAM para segmentar la imagen.
+    """
+    st.write("Segmentando la imagen...")
+    image_np = prepare_image(image)  # Asegurar formato RGB
     predictor.set_image(image_np)
 
-    # Coordenadas de una caja de ejemplo
+    # Usar una caja para segmentar
     input_box = np.array([[50, 50, image_np.shape[1] - 50, image_np.shape[0] - 50]])
     masks, _, _ = predictor.predict(box=input_box, multimask_output=False)
     return masks[0]
@@ -48,7 +63,7 @@ checkpoint_path = download_checkpoint()
 # Cargar el modelo
 predictor = load_sam_model(checkpoint_path)
 
-# Imagen por defecto
+# Procesar la imagen por defecto
 default_image_path = "default_image.jpg"  # Asegúrate de tener una imagen de prueba
 if not os.path.exists(default_image_path):
     st.warning("Coloca una imagen llamada `default_image.jpg` en el directorio raíz.")
@@ -57,8 +72,11 @@ else:
     st.image(image, caption="Imagen original")
 
     # Segmentar la imagen
-    mask = segment_image(image, predictor)
+    try:
+        mask = segment_image(image, predictor)
 
-    # Mostrar la segmentación
-    st.write("Máscara segmentada:")
-    st.image(mask * 255, caption="Máscara generada", clamp=True)
+        # Mostrar la segmentación
+        st.write("Máscara segmentada:")
+        st.image(mask * 255, caption="Máscara generada", clamp=True)
+    except Exception as e:
+        st.error(f"Error durante la segmentación: {e}")
