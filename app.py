@@ -34,7 +34,7 @@ def preprocess_image(image, max_size=512):
     scaling_factor = max_size / max(width, height)
     if scaling_factor < 1:
         new_size = (int(width * scaling_factor), int(height * scaling_factor))
-        image = image.resize(new_size, Image.ANTIALIAS)
+        image = image.resize(new_size, Image.Resampling.LANCZOS)  # Cambiado a LANCZOS
     return np.array(image)
 
 # Segmentar imagen
